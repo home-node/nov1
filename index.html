@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Egg Basket</title>
+    <style>
+        body {
+            background-color: #222222;
+            color: #FFFFFF;
+            font-family: Arial, sans-serif;
+        }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 168px;
+            padding: 10px;
+            border-radius: 5px;
+            background-color: #333333;
+        }
+        header button {
+            margin-left: 15px;
+            padding: 8px;
+        }
+        table {
+            width: 100%;
+            margin-top: 20px;
+        }
+        th {
+            background-color: #FFFFFF;
+            color: #000000;
+            border: 1px solid #666666;
+        }
+        td {
+            border: 1px solid #8e8e8e;
+            padding: 8px;
+            text-align: left;
+        }
+        .active {
+            background-color: #000000;
+        }
+        .rot {
+            background-color: #8e8e8e;
+            color: #000000;
+        }
+        .sold {
+            background-color: #EEEEEE;
+            color: #000000;
+        }
+        .positive {
+            background-color: #333333;
+            color: #FFFFFF;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+        .negative {
+            background-color: #333333;
+            color: #ff0000;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.5.2/web3.min.js"></script>
+</head>
+<body>
+    <header>
+        <div>
+            <h1>Contract: <span id="contract"></span></h1>
+        </div>
+        <div class="header-info">
+            <div id="v"></div>
+            <div id="z"></div>
+            <div id="q"></div>
+            <div id="t"></div>
+            <div id="life"></div>
+            <div id="pop"></div>
+        </div>
+        <div id="message-box" class="positive"></div>
+        <div class="header-controls">
+            <label for="batch">Batch:</label>
+            <input type="number" id="batch" min="1" value="1" style="width: 80px; background-color: #222222; color: #FFFFFF;">
+            <button id="button" style="background-color: #222222; color: #FFFFFF;"> 🥚 </button>
+            <button id="refresh" style="background-color: #222222; color: #FFFFFF;"> ↻ </button>
+        </div>
+    </header>
+    <table>
+        <thead>
+            <tr>
+                <th>Element</th>
+                <th>Queue</th>
+                <th>Address</th>
+                <th>Stamp</th>
+                <th>Time since lay</th>
+                <th>Time until rot</th>
+            </tr>
+        </thead>
+        <tbody id="dataBody">
+            <!-- Data -->
+        </tbody>
+    </table>
+    <script>
+        const contractABI = [
+	{
+		"inputs": [],
+		"name": "act",
+		"outputs": [],
+		"stateMutability": "payable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "e",
+				"type": "uint256"
+			}
+		],
+		"name": "batch",
+		"outputs": [],
+		"stateMutability": "payable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"stateMutability": "nonpayable",
+		"type": "constructor"
+	},
+	{
+		"inputs": [],
+		"name": "fetch",
+		"outputs": [
+			{
+				"components": [
+					{
+						"internalType": "address payable",
+						"name": "p",
+						"type": "address"
+					},
+					{
+						"internalType": "uint256",
+						"name": "r",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "s",
+						"type": "uint256"
+					}
+				],
+				"internalType": "struct nov1.basket[]",
+				"name": "",
+				"type": "tuple[]"
+			},
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			},
+			{
+				"internalType": "string",
+				"name": "",
+				"type": "string"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	}
+];
+        const contractAddress = '0xd9145CCE52D386f254917e481eB44e9943F39138';
+        const web3 = new Web3(new Web3.providers.HttpProvider('https://polygon-mainnet.infura.io/v3/d625808bbdc24dd4844b5315cee1a3ba'));
+        const contract = new web3.eth.Contract(contractABI, contractAddress);
+        const messageBox = document.getElementById('message-box');
+        let b, dep, ceiling, floor, n, q, t, u, v, w, z;
+
+        //build
+        async function build() {
+            messageBox.className = "positive";
+            messageBox.innerText = "🥚 to purchase a batch\n↻ to refresh\nctrl+f and paste your address\nto find your clutch";
+            document.getElementById('batch').value = 1;
+            const result = await contract.methods.fetch().call();
+            b = {
+                p: result[0].map(item => item.p),
+                r: result[0].map(item => item.r),
+                s: result[0].map(item => item.s)
+            };
+            v = result[1];
+            z = result[2];
+            q = result[3];
+            n = result[4];
+            t = Math.floor(Date.now() / 1000);
+            rot()
+            dep = b.s[0];
+            pop = b.p.length - q;
+            document.getElementById('contract').innerText = n;
+            document.getElementById('v').innerText = `v (vitality): ${pace(v)}`;
+            document.getElementById('z').innerText = `z (lower bound): ${z}`;
+            document.getElementById('q').innerText = `q (current queue): ${q}`;
+            document.getElementById('t').innerText = `t (current timestamp): ${t}`;
+            document.getElementById('life').innerText = `lifespan: ${pace(t - dep)}`;
+            document.getElementById('pop').innerText = `population: ${pop}`;
+            const tableBody = document.getElementById('dataBody');
+            tableBody.innerHTML = '';
+            ceiling = Math.min(b.p.length - 1, 1048576);
+            floor = Math.max(ceiling - 1048576, 0);
+            for (let i = ceiling; i >= floor; i--) {
+                const row = document.createElement('tr');
+                row.className = b.r[i] == 2 ? 'active' : b.r[i] == 0 ? 'rot' : 'sold';
+                let queue;
+                if (b.r[i] == 0) {queue = "rotten";} else if (b.r[i] == 1) {queue = "sold";} else {queue = 1 + i - q;}
+                u = t - b.s[i];
+                if (v >= u && b.r[i] == 2) {w = v - u;} else {w = 0;}
+                row.innerHTML = `
+                    <td>${i}</td>
+                    <td>${queue}</td>
+                    <td>${b.p[i]}</td>
+                    <td>${b.s[i]}</td>
+                    <td>${pace(u)}</td>
+                    <td>${pace(w)}</td>
+                `;
+                tableBody.appendChild(row);
+            }
+        }
+
+        //buy
+        async function buy() {
+            const batch = parseInt(document.getElementById('batch').value);
+            if (batch > pop && batch > 1) {
+                messageBox.className = "negative";
+                messageBox.innerText = "Error:\namount exceeds population";
+                return;
+            }
+            try {
+                const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+                const transactionParameters = {
+                    to: contractAddress,
+                    from: accounts[0],
+                    value: web3.utils.toHex(web3.utils.toWei(batch.toString(), 'ether')),
+                    data: contract.methods.batch(batch).encodeABI()
+                };
+                await ethereum.request({
+                    method: 'eth_sendTransaction',
+                    params: [transactionParameters]
+                });
+                console.log('Transaction successful');
+            } catch (error) {
+                console.error('Error executing act function:', error);
+            }
+        }
+
+        //tick
+        async function tick() {
+            const t = Math.floor(Date.now() / 1000);
+            const tableBody = document.getElementById('dataBody');
+            document.getElementById('t').innerText = `t (current timestamp): ${t}`;
+            document.getElementById('life').innerText = `lifespan: ${pace(t - dep)}`;
+            for (let i = ceiling; i > floor; i--) {
+                u = t - b.s[i];
+                if (u < v && b.r[i] == 2) {
+                    w = v - u;
+                } else {
+                    w = 0;
+                }
+                const cells = tableBody.rows[ceiling - i].cells;
+                cells[4].innerText = pace(u);
+                cells[5].innerText = pace(w);
+            }
+        }
+
+        //rot
+        function rot() {
+            if (t - b.s[q] >= v) {b.r[q] = 0; q++; rot();}
+        }
+
+        //pace
+        function pace(seconds) {
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = seconds % 60;
+            return `${h}h, ${m}m, ${s}s`;
+        }
+
+        //mask
+        async function mask() {
+            if (window.ethereum) {
+                try {
+                    await ethereum.request({ method: 'eth_requestAccounts' });
+                    web3.eth.defaultAccount = (await web3.eth.getAccounts())[0];
+                    console.log('MetaMask connected');
+                } catch (error) {
+                    console.error('User denied account access');
+                }
+            } else {
+                console.error('MetaMask not detected');
+            }
+        }
+
+        document.getElementById('refresh').addEventListener('click', build);
+        document.getElementById('button').addEventListener('click', buy);
+        window.addEventListener('load', mask);
+        setInterval(tick, 1000);
+        build();
+    </script>
+</body>
+</html>
