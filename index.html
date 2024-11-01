@@ -263,6 +263,7 @@
         //tick
         async function tick() {
             const t = Math.floor(Date.now() / 1000);
+            rot();
             const tableBody = document.getElementById('dataBody');
             document.getElementById('t').innerText = `t (current timestamp): ${t}`;
             document.getElementById('life').innerText = `lifespan: ${pace(t - dep)}`;
